@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang='en'> 
+   <head>
+       <title>Chat Room</title>
+       <style>
+           #username{
+                float: left;
+                text-align: center;
+                border: 1px solid black;
+                padding: 5px; 
+                height: 5em;
+                width: 12em;
+           }
+           #usernameError{
+               background-color: lightblue;
+           }
+           #dashboard{
+               display: none;
+               width: 30em;
+           }
+           #welcome{
+                background-color: lightblue;
+           }
+           #usersTitle{
+                background-color: lightblue;
+               text-align: center;
+           }
+           #roomTitle2{
+               background-color: lightblue;
+               text-align: center;
+           }
+           #createRoom{
+                text-align: center;
+                border: 1px solid black;
+                padding: 5px; 
+                height: 13em;
+                width: 14em;
+           }
+           #currentRoomsTitle{
+                text-align: center;
+                border: 1px solid black;
+                padding: 5px; 
+                height: 30em;
+                width: 14em;
+                overflow: auto;
+           }
+           #currentRoomsLabel{
+               background-color: lightblue;
+           }
+           #password{
+               display: none;
+               text-align: center;
+                border: 1px solid black;
+                padding: 5px; 
+                height: 3em;
+                width: 14em;
+           }
+           #mainChat{
+               float:right;
+                height: 44.85em;
+                width: 14em;
+           }
+           #allUsers{
+                border: 1px solid black;
+                padding: 5px; 
+                height: 13em;
+                width: 14em;
+                overflow: auto;
+                text-align: center;
+           }
+           #chatroom2{
+                border: 1px solid black;
+                padding: 5px; 
+                height: 30em;
+                width: 14em;
+                overflow: auto;
+           }
+           #roomAndUsers{
+                display: none;
+           }
+           #chatroom{
+               float: left;
+               border: 1px solid black;
+               padding: 5px; 
+                height: 30em;
+                width: 17em;
+                overflow: auto;
+           }
+           #currentChatters{
+                background-color: lightblue;
+                border: 1px solid black;
+               padding: 5px; 
+                height: 2.5em;
+                width: 13em;
+                overflow: auto;
+                text-align: center;
+           }
+           #roomTitle{
+                background-color: lightblue;
+                float: left;
+               border: 1px solid black;
+               padding: 5px; 
+                height: 2.5em;
+                width: 17em;
+                overflow: auto;
+                text-align: center;
+           }
+           #chatUsers{
+               border: 1px solid black;
+               padding: 5px; 
+                height: 30em;
+                width: 13em;
+                overflow: auto;
+                text-align: center;
+           }
+           #backtodash{
+                border: 1px solid black;
+                padding: 5px; 
+                height: 1.5em;
+                width: 30.75em;
+                text-align: center;
+           }
+           #creatorOnly{
+               display: none;
+               border: 1px solid black;
+                padding: 5px; 
+                height: 4em;
+                width: 30.75em;
+                overflow: auto;
+                text-align: center;
+           }
+       </style>
+       <script src="/socket.io/socket.io.js"></script>
+       <script>
+       let roomCount;
+       var socketio = io.connect();
+ 
+        // runs when a new user signs in
+        function signIn(){
+           let user = document.getElementById("username_input").value;
+           document.getElementById("username_input").value = "";
+           socketio.emit("username_to_server", {username:user}, function(data){
+                if(data){
+                    document.getElementById('welcome').appendChild(document.createTextNode("Welcome " + user + "!"));
+                    document.getElementById("username").style.display = 'none';
+                    document.getElementById("dashboard").style.display = 'block';
+                }
+                else{
+                    alert("Pick another username, that one is either in use or invalid.");
+                }
+           });
+        }
+
+        // called when user wants to send new message
+       socketio.on("message_to_client",function(data) {
+          document.getElementById("chatlog").appendChild(document.createElement("hr"));
+          document.getElementById("chatlog").appendChild(document.createTextNode(data['username'] + " " + data['message']));
+       });
+
+        // called when user wants to send new message
+       socketio.on("everyone",function(data) {
+          document.getElementById("chatlog2").appendChild(document.createElement("hr"));
+          document.getElementById("chatlog2").appendChild(document.createTextNode(data['username'] + " " + data['message']));
+       });
+
+       // runs when user wants to clear their chatboard 
+       function clearRoom(){
+          socketio.emit("clearing", {message: ""});
+       }
+
+       // called when you need to clear the chatboard
+       socketio.on("clear",function(data) {
+          document.getElementById("chatlog").innerHTML = "";
+       });
+
+        // runs when user wants to send new message
+       function sendMessage(){
+          var msg = document.getElementById("message_input").value;
+          let whom = document.getElementById("dropdown2").value;
+          if (whom.localeCompare('all') == 0){
+            socketio.emit("message_to_server", {message:msg});
+          }
+          else{
+            socketio.emit("privateMsg", {message:msg, whom: whom});
+          }
+          document.getElementById("message_input").value = "";
+       }
+
+        // runs when user wants to send new to the entire community
+        function sendMessage2(){
+          var msg = document.getElementById("message_input2").value;
+          socketio.emit("message_to_everyone", {message:msg});
+          document.getElementById("message_input2").value = "";
+       }
+
+       // runs when user wants to create a new room
+       function newRoom(){
+           let newRoom = document.getElementById("newRoom_input").value;
+           let password = document.getElementById("passwordProtect").value;
+           document.getElementById("newRoom_input").value = "";
+           document.getElementById("passwordProtect").value = "";
+           socketio.emit("newRoom_to_server", {newRoom:newRoom, password:password}, function(data){
+                if(!data){
+                    alert("Pick another name, that one is either taken or invalid.");
+                }
+           });
+        }
+
+        // called to display rooms after the user logs in
+        socketio.on("rooms", function(data){
+            document.getElementById("currentRooms").innerHTML = "";
+            document.getElementById("currentRooms").appendChild(document.createElement("hr"));
+            let array = data['rooms'];
+            roomCount = 0;
+            for (let i = 0; i < array.length; ++i){
+                document.getElementById("currentRooms").innerHTML += '<br>';
+                let div = document.createElement('div');
+                let but = document.createElement("INPUT");
+                but.setAttribute("type", "radio");
+                but.name = "select"
+                but.value = array[i];
+                but.id = 'radio' + i;
+                div.appendChild(document.createTextNode(array[i]));
+                div.appendChild(but);
+                document.getElementById("currentRooms").appendChild(div);
+                roomCount++;
+            }
+            if (array.length != 0){
+                document.getElementById("currentRooms").innerHTML += '<br>';
+                let div = document.createElement('div');
+                div.textContent = "Select Room and Click: ";
+                let but = document.createElement("button");
+                but.textContent = 'Join';
+                but.addEventListener('click', displayRoom, false);
+                div.appendChild(but);
+                document.getElementById("currentRooms").appendChild(document.createElement("hr"));
+                document.getElementById("currentRooms").appendChild(div);
+            }
+            else{
+                let div = document.createElement('div');
+                div.appendChild(document.createTextNode("No Current Rooms"));
+                document.getElementById("currentRooms").appendChild(div);
+            }
+        });
+
+        // runs when the user wants to join a specific chat room
+        function displayRoom(){
+            let room;
+            for(let i = 0; i < roomCount; ++i){
+                if (document.getElementById('radio' + i).checked == true){
+                    room = document.getElementById('radio' + i).value;
+                    document.getElementById('radio' + i).checked = false;
+                }
+            }
+            socketio.emit("enterChatRoom", {roomName:room});
+        }
+
+        // called when user wants to join a specific chat room
+        socketio.on("createChatRoom", function(data){
+            document.getElementById("roomAndUsers").style.display = 'block';
+            document.getElementById("dashboard").style.display = 'none';
+            let name = data['name'];
+            let users = data['users'];
+            let div = document.createElement('div');
+            if(data['private']){
+                div.appendChild(document.createTextNode("Private Room Name: " + name));
+            }
+            else{
+                div.appendChild(document.createTextNode("Room Name: " + name));
+            }
+            div.innerHTML += '<br>';
+            div.appendChild(document.createTextNode("Host: " + data['creator']));
+            document.getElementById("roomTitle").innerHTML = " ";
+            document.getElementById("roomTitle").append(div);
+            if(data['creator'].localeCompare(data['user']) == 0){
+                document.getElementById('creatorOnly').style.display = 'block';
+            }
+            else{
+                document.getElementById('creatorOnly').style.display = 'none';
+            }
+            document.getElementById("currentChatters").innerHTML = "";
+            document.getElementById("currentChatters").appendChild(document.createTextNode("Current Chatters"));
+            document.getElementById("currentChatters").innerHTML += '<br>';
+            document.getElementById("currentChatters").appendChild(document.createTextNode("ID: " + data['user']));
+        });
+
+        // called to update the current chatters display in chatrooms
+        socketio.on("usernames", function(data){
+            document.getElementById("chatUsers").innerHTML = "";
+            let array = data['usernames'];
+            for (let i = 0; i < array.length; ++i){
+                let div = document.createElement('div');
+                div.appendChild(document.createTextNode(array[i]));
+                document.getElementById("chatUsers").appendChild(div);
+            }
+            document.getElementById('dropdown').innerHTML = "";
+            document.getElementById('dropdown2').innerHTML = "";
+            for (let val of array){
+                let option = document.createElement("option");
+                option.value = val;
+                option.text = val;
+                document.getElementById('dropdown2').appendChild(option);
+                if (val.localeCompare(data['name']) != 0){
+                    let option2 = document.createElement("option");
+                    option2.value = val;
+                    option2.text = val;
+                    document.getElementById('dropdown').appendChild(option2);
+                }
+            }
+            let all = document.createElement("option");
+            all.value = 'all';
+            all.text = 'all';
+            all.selected = 'selected';
+            document.getElementById('dropdown2').appendChild(all);
+        });
+
+        // called to update the current chatters display in the dashboard
+        socketio.on("allUsers", function(data){
+            document.getElementById("chatUsers2").innerHTML = "";
+            let array = data['usernames'];
+
+            for (let i = 0; i < array.length; ++i){
+                let div = document.createElement('div');
+                div.appendChild(document.createTextNode(array[i]));
+                document.getElementById("chatUsers2").appendChild(div);
+            }
+        });
+
+        // called to prompt user to enter password for private rooms 
+        socketio.on("checkPassword", function(data){
+            let password = data['password'];
+            let room = data['roomName'];
+            document.getElementById("password").style.display = 'block';
+            document.getElementById("password").className = password;
+            document.getElementById("password").name = room;
+            document.getElementById('currentRoomsTitle').style.display = 'none';
+        });
+
+        // runs to verify the password entered for private rooms
+        function password(){
+            let password = document.getElementById("password").className;
+            let room = document.getElementById("password").name;;
+            if (password.localeCompare(document.getElementById("passwordVerify").value) == 0){
+                socketio.emit("enterPrivateChatRoom", {roomName:room});
+            }
+            else{
+                alert("wrong password");
+            }
+            document.getElementById("passwordVerify").value = "";
+            document.getElementById("password").style.display = 'none';
+            document.getElementById('currentRoomsTitle').style.display = 'block';
+        }
+
+        // runs when someone logs out of their chatroom
+        function logout(){
+            document.getElementById("dashboard").style.display = 'block';
+            document.getElementById("roomAndUsers").style.display = 'none';
+            socketio.emit("logout", {data: "m"});
+        }
+
+        // runs when someone is kicked from their chatroom
+        function kick(){
+            let person = document.getElementById('dropdown').value;
+            socketio.emit("kick", {person: person});
+        }
+
+        // called when someone is kicked or banned
+        socketio.on("kickedOut", function(data){
+            document.getElementById("dashboard").style.display = 'block';
+            document.getElementById("roomAndUsers").style.display = 'none';
+            socketio.emit("logout", {data: data['data']});
+        });
+
+        // runs when someone is banned from their chatroom
+        function ban(){
+            let person = document.getElementById('dropdown').value;
+            socketio.emit("ban", {person: person});
+        }
+
+        // called when someone banned tries to join the chatroom
+        socketio.on("banAlert", function(data){
+            alert("You have been permanently banned from joining this chatroom.");
+        });
+
+        // called when host wants to transfer duties
+        function host(){
+            let person = document.getElementById('dropdown').value;
+            socketio.emit('hostChange', {person: person});
+        }
+
+        // called when host wants to destroy room
+        function destroyRoom(){
+            socketio.emit('destroy', {data: ""});
+        }  
+        
+        // called when rooms destroyed
+        socketio.on("destroyAlert", function(data){
+            alert("This room has been destroyed");
+        });
+       </script> 
+    </head>
+
+
+    
+    <body>
+        <!-- username prompt -->
+        <div id = "username">
+            <div id = "usernameError">Enter Username:</div>
+            <br>
+            <input type="text" id="username_input"/>
+            <button onclick="signIn()">Sign In</button>
+        </div>
+        <!-- dashboard view: create room prompt and current rooms display -->
+        <div id = "dashboard">
+            <div id = "mainChat">
+                <div id = "allUsers">
+                    <div id = "usersTitle">All Users: </div>
+                    <hr>
+                    <div id = "chatUsers2"></div>
+                </div>
+                <br>
+                <div id = "chatroom2">
+                    <div id = "roomTitle2">Communal Chatboard</div>
+                    <hr>
+                    <div id = "messaging2">
+                        <input type= "text" id="message_input2"/>
+                        <button onclick="sendMessage2()">Send</button>
+                        <div id="chatlog2"></div>
+                    </div>
+                </div>
+            </div>
+            <div id ="createRoom">
+                <div id = "welcome"></div>
+                <hr>
+                <div>Create New Room: </div>
+                <br>
+                <label>Enter Room Name: </label>
+                <input type="text" id="newRoom_input"/>
+                <br>
+                <br>
+                <label>Password (Optional): </label>
+                <input type="password" id="passwordProtect"/>
+                <br>
+                <br>
+                <button onclick="newRoom()">Create</button>
+                <br>
+                <br>
+            </div>
+            <div id = "password">
+                <label>Enter Password: </label>
+                <input type="password" id="passwordVerify"/>
+                <button id="passwordsubmit" onclick="password()">Enter</button>
+            </div>
+            <br>
+            <div id = "currentRoomsTitle">
+                <div id = "currentRoomsLabel">Current Rooms: </div>
+                <div id = "currentRooms"></div>
+             </div>
+        </div>
+
+        <!-- chatroom view -->
+        <div id = "roomAndUsers">
+            <div id = "roomTitle"></div>
+            <div id = "currentChatters"></div>
+            <div id = "chatroom">
+                <div id = "messaging">
+                    <label for='dropdown2'></label>
+                    <select id='dropdown2'>
+                    </select>
+                    <input type= "text" id="message_input"/>
+                    <button onclick="sendMessage()">Send</button>
+                    <img src="https://p7.hiclipart.com/preview/97/794/538/tech-one-inc-computer-icons-website-shutterstock-information-icon-clip-art-at-clker-com-vector-clip-art-online.jpg" alt="informationicon" height="15" width="15" title="Send a message to everyone in the room by choosing 'all' in the dropdown menu or send private messages by choosing a specific username">
+                    <div id="chatlog"></div>
+                </div>
+            </div>
+            <div id = "chatUsers"></div>
+            <div id = "backtodash">
+                <button id="logout" onclick="logout()">Logout</button>
+                <button id="clear" onclick="clearRoom()">Clear</button>
+                <br>
+                <br>
+            </div>
+            <div id = 'creatorOnly'>
+                <label for='dropdown'>Choose User: </label>
+                <select id='dropdown'>
+                </select>
+                <button onclick='ban()'>Ban</button>
+                <button onclick='kick()'>Kick</button>
+                <button onclick='host()'>Make Host</button>
+                <br>
+                <br>
+                <div><button onclick='destroyRoom()'>Destroy Room</button></div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "module6-group-module6-466913-463907",
+  "version": "1.0.0",
+  "description": "mod6 group",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cse330-spring-2020/module6-group-module6-466913-463907.git"
+  },
+  "author": "akshat and ram",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cse330-spring-2020/module6-group-module6-466913-463907/issues"
+  },
+  "homepage": "https://github.com/cse330-spring-2020/module6-group-module6-466913-463907#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "nodemon": "^2.0.2",
+    "url": "^0.11.0"
+  }
+}
